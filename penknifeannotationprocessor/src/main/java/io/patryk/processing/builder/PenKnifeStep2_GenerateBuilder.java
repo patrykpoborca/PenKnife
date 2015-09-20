@@ -9,18 +9,21 @@ import com.squareup.javapoet.TypeSpec;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
-import io.patryk.Bindable;
 import io.patryk.PKIgnore;
 import io.patryk.PenKnife;
 import io.patryk.helper.Helpers;
+import io.patryk.processing.PenKnifeProcessor;
 import io.patryk.processing.prepwork.PenKnifeStep1_GenerateHelpers;
 
 /**
@@ -31,7 +34,6 @@ public class PenKnifeStep2_GenerateBuilder {
     private static final String CLASS_SUFFIX = "$$PenKnifeGenerator";
 
     private static final String CLASS_GENERATOR_PREFIX = "PKBuild";
-    private static final String CLASS_EXTRACTOR_PREFIX = "PKExtract";
 
     private static final String METHOD_PREFIX = "provide";
     private static final String NAME_CONTAINER = "container";
@@ -43,7 +45,7 @@ public class PenKnifeStep2_GenerateBuilder {
     private String generatedContainerBuilderClassName;
     private Helpers.ClassNameAndPackage targettedClassInfo;
     private ClassName thisClasses_ClassName;
-    private String classExtractorName;
+    private PenKnifeProcessor.TargettedSettingHolder settings;
 
 
     public PenKnifeStep2_GenerateBuilder( TypeMirror containerMirror, PenKnifeStep1_GenerateHelpers step1) {
@@ -54,42 +56,59 @@ public class PenKnifeStep2_GenerateBuilder {
         this.step1 = step1;
     }
 
-    public List<Element> discoverElements(List<Element> discoveredElements, List<? extends Element> enclosedElements) {
-        List<Element> list = new ArrayList<>();
+    public void discoverElements(Map<String, Element> discoveredElements, List<? extends Element> enclosedElements) {
+
         for(Element element : enclosedElements){
-            if(element.getKind().isField() && element.getAnnotation(PKIgnore.class) == null){
-                list.add(element);
+            if(element.getAnnotation(PKIgnore.class) == null && !element.getModifiers().contains(Modifier.PRIVATE)){
+                if(element instanceof ExecutableElement){
+                    List<? extends VariableElement> params = ((ExecutableElement) element).getParameters();
+
+                    for(int i =0; i < params.size(); i ++){
+                        discoveredElements.put(Helpers.generateId(params.get(i)), params.get(i));
+                    }
+                }
+                else {
+                    discoveredElements.put(Helpers.generateId(element), element);
+                }
             }
         }
-        return list;
     }
 
 
-    public void generateBuilder(TypeMirror targettedClass, List<Element> discoveredElements, Bindable bindable) {
+    public void generateBuilder(TypeMirror targettedClass, Map<String, Element> discoveredElements, PenKnifeProcessor.TargettedSettingHolder settings) {
 
+        this.settings = settings;
 
         targettedClassInfo = Helpers.getPackage(targettedClass);
         generatedContainerBuilderClassName = CLASS_GENERATOR_PREFIX + targettedClassInfo.className;
         thisClasses_ClassName = ClassName.get(targettedClassInfo.classPackage, generatedContainerBuilderClassName);
         TypeSpec.Builder containerBuilder = TypeSpec.classBuilder(generatedContainerBuilderClassName);
 
-        classExtractorName = CLASS_EXTRACTOR_PREFIX + targettedClassInfo.className;
 
-        TypeSpec.Builder containerFetcher = TypeSpec.classBuilder(classExtractorName);
 
         generateInstantiationContainerMethods(containerBuilder);
-
-        generateExtractionContainerMethods(containerFetcher);
         
-        for(Element element : discoveredElements){
-            containerBuilder.addMethod(generateAddMethod(element));
+        for(String stringKey : discoveredElements.keySet()){
+            Element discoveredElement = discoveredElements.get(stringKey);
+
+//            if(discoveredElement instanceof ExecutableElement){
+//                List<? extends VariableElement> parameterElements = ((ExecutableElement) discoveredElement).getParameters();
+//
+//                for(int i =0 ; i < parameterElements.size(); i ++){
+//                    String generatedID =
+//                    containerBuilder.addMethod(generateAddMethod(parameterElements.get(i), para))
+//                }
+//            }
+//            else(discoveredElement instanceof VariableElement == false){
+                containerBuilder.addMethod(generateAddMethod(discoveredElement, stringKey));
+//            }
         }
 
-        containerBuilder.addMethod(generateFinalizeContainerMethod(targettedClass, bindable));
+
+        containerBuilder.addMethod(generateFinalizeContainerMethod(targettedClass));
 
         try {
             JavaFile.builder(targettedClassInfo.classPackage, containerBuilder.build()).build().writeTo(filer);
-            JavaFile.builder(targettedClassInfo.classPackage, containerFetcher.build()).build().writeTo(filer);
 
         }
         catch(IOException e){
@@ -98,34 +117,13 @@ public class PenKnifeStep2_GenerateBuilder {
 
     }
 
-    private void generateExtractionContainerMethods(TypeSpec.Builder classBuilder) {
 
-        classBuilder.addField(containerTypeName, NAME_CONTAINER, Modifier.PRIVATE);
-
-        MethodSpec realConstructor = MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PRIVATE)
-                .addParameter(containerTypeName, NAME_CONTAINER)
-                .addStatement("$T dummyVariable", PenKnife.class)
-                .addStatement("this.$N = $N", NAME_CONTAINER, NAME_CONTAINER).build();
-        classBuilder.addMethod(realConstructor);
-
-        MethodSpec newBuilderMethod = MethodSpec.methodBuilder("builder")
-                .returns(thisClasses_ClassName)
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addParameter(containerTypeName, NAME_CONTAINER)
-                .addStatement("return new $L($N))",
-                        generatedContainerBuilderClassName,
-                        step1.getSmartCastMethod(),
-                        NAME_CONTAINER)
-                .build();
-    }
-
-    private MethodSpec generateFinalizeContainerMethod(TypeMirror targettedClass, Bindable bindable) {
+    private MethodSpec generateFinalizeContainerMethod(TypeMirror targettedClass) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("build")
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement("$N = $L().finalize($N)", NAME_CONTAINER, step1.getSmartCastMethod(), NAME_CONTAINER);
 
-        if(bindable.mapToTargetClass()){
+        if(settings.MapToTarget){
             Helpers.ClassNameAndPackage info = Helpers.getPackage(targettedClass);
             ClassName returnType = ClassName.get(info.classPackage, info.className);
             builder.addStatement("return ($L) $L().map($N, new $T())", returnType,step1.getSmartCastMethod(), NAME_CONTAINER, returnType)
@@ -133,7 +131,7 @@ public class PenKnifeStep2_GenerateBuilder {
         }
         else {
             ClassName returnName = Helpers.getClassName(targettedClassInfo);
-            builder.returns(TypeName.get(targettedClass))
+            builder.returns(containerTypeName)
                 .addStatement("return $N", NAME_CONTAINER);
         }
 
@@ -165,7 +163,7 @@ public class PenKnifeStep2_GenerateBuilder {
 
     }
 
-    private MethodSpec generateAddMethod(Element element){
+    private MethodSpec generateAddMethod(Element element, String id){
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(METHOD_PREFIX + element.getSimpleName());
 
         methodBuilder.addModifiers(Modifier.PUBLIC)
@@ -173,10 +171,30 @@ public class PenKnifeStep2_GenerateBuilder {
                     .addParameter(TypeName.get(element.asType()), "element")
                     .addStatement("$N = $L().set($N, $S, $N)",
                             NAME_CONTAINER, step1.getSmartCastMethod(), NAME_CONTAINER,
-                            Helpers.generateId(element), "element")
+                            id, "element")
                     .addStatement("return this");
 
         return methodBuilder.build();
     }
 
+    public TypeMirror getContainerMirror() {
+        return containerMirror;
+    }
+
+    public TypeName getContainerTypeName() {
+        return containerTypeName;
+    }
+
+    public ClassName getThisClasses_ClassName() {
+        return thisClasses_ClassName;
+    }
+
+    public String getGeneratedContainerBuilderClassName() {
+        return generatedContainerBuilderClassName;
+    }
+
+
+    public Helpers.ClassNameAndPackage getTargettedClassInfo() {
+        return targettedClassInfo;
+    }
 }

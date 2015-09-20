@@ -3,14 +3,19 @@ package io.patryk.helper;
 
 import com.squareup.javapoet.ClassName;
 
+import java.util.List;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
 
 import io.patryk.Bindable;
 import io.patryk.PKHandler;
+import io.patryk.PenKnifeTargetSettings;
+
 /**
  * Created by Patryk Poborca on 9/19/2015.
  */
@@ -32,16 +37,6 @@ public class Helpers {
 
         try {
             bindable.value();
-        }
-        catch(MirroredTypeException exception){
-            return exception.getTypeMirror();
-        }
-        return null;
-    }
-
-    public static TypeMirror getBindableMapFlag(Element element) {
-        try {
-            element.getAnnotation(Bindable.class).mapToTargetClass();
         }
         catch(MirroredTypeException exception){
             return exception.getTypeMirror();
@@ -85,6 +80,16 @@ public class Helpers {
                 .append(element.getSimpleName());
 
         return builder.toString();
+    }
+
+    public static List<? extends TypeMirror> getMirrorTypes(PenKnifeTargetSettings settings) {
+        try{
+            settings.value();
+        }
+        catch (MirroredTypesException exception){
+            return exception.getTypeMirrors();
+        }
+        throw new IllegalStateException("Shouldn't get here. Mirrored Types exception didn't occur");
     }
 
     public static class ClassNameAndPackage{

@@ -29,8 +29,10 @@ import javax.tools.Diagnostic;
 import io.patryk.Bindable;
 import io.patryk.BoundMethod;
 import io.patryk.PKHandler;
+import io.patryk.PenKnifeTargetSettings;
 import io.patryk.helper.Helpers;
 import io.patryk.processing.builder.PenKnifeStep2_GenerateBuilder;
+import io.patryk.processing.extractor.PenKnifeStep3Generate_Extractor_Injector;
 import io.patryk.processing.prepwork.PenKnifeStep1_GenerateHelpers;
 
 @AutoService(Processor.class)
@@ -42,6 +44,7 @@ public class PenKnifeProcessor extends AbstractProcessor{
     private TypeMirror containerMirror = null;
     private TypeMirror handlerImplMirror;
     private PenKnifeStep1_GenerateHelpers penKnifeStep1GenerateHelpers;
+    private PenKnifeStep3Generate_Extractor_Injector penKnifeStep3Generate_Extractor_Injector;
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
@@ -67,8 +70,8 @@ public class PenKnifeProcessor extends AbstractProcessor{
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        Map<TypeMirror, List<Element>> discoveredElements = new HashMap<>(4);
-        Map<TypeMirror, Bindable> discoveredElementBindables = new HashMap<>(4);
+        Map<TypeMirror, Map<String, List<Element>>> discoveredElements = new HashMap<>(4);
+        Map<TypeMirror, TargettedSettingHolder> discoveredElementSettings = new HashMap<>(4);
 
         if(containerMirror == null && handlerImplMirror == null) {
             extractHelperTypeMirrors(roundEnv);
@@ -76,46 +79,71 @@ public class PenKnifeProcessor extends AbstractProcessor{
 
         TypeMirror typeMirror = null;
         Bindable bindable;
+        PenKnifeTargetSettings settings;
+        boolean[] mapToValues;
+        boolean[] injectDiscoveredElements;
+        for(Element element : roundEnv.getElementsAnnotatedWith(PenKnifeTargetSettings.class)){
+            settings = element.getAnnotation(PenKnifeTargetSettings.class);
+            List<? extends TypeMirror> listOfKlass = Helpers.getMirrorTypes(settings);
+            mapToValues = settings.mapToValue();
+            injectDiscoveredElements = settings.injectTarget();
+
+            for(int i =0; i < listOfKlass.size(); i ++){
+                discoveredElementSettings.put(listOfKlass.get(i), new TargettedSettingHolder(mapToValues[i], injectDiscoveredElements[i]));
+            }
+        }
 
         for(Element element : roundEnv.getElementsAnnotatedWith(Bindable.class)){
+
+
 
             bindable = element.getAnnotation(Bindable.class);
             typeMirror = Helpers.getBindableTargetClass(bindable);
 
-            discoveredElementBindables.put(typeMirror, bindable);
 
             if(!discoveredElements.containsKey(typeMirror)){
-                discoveredElements.put(typeMirror, new ArrayList<Element>(5));
+                discoveredElements.put(typeMirror, new HashMap<String, Element>(5));
             }
 
 
             if(element.getKind().isClass()){
-                discoveredElements.get(typeMirror).addAll(penKnifeStep2GenerateBuilder.discoverElements(discoveredElements.get(typeMirror), element.getEnclosedElements()));
+                messager.printMessage(Diagnostic.Kind.WARNING, "Class = " + element.asType().toString());
+                penKnifeStep2GenerateBuilder.discoverElements(discoveredElements.get(typeMirror), element.getEnclosedElements());
             }
             else if(element.getKind().isField()){
-                discoveredElements.get(typeMirror).add(element);
+                messager.printMessage(Diagnostic.Kind.WARNING, "Field = " + element.getEnclosingElement().asType().toString());
+//                discoveredElements.get(typeMirror).add(element);
             }
         }
 
         if(discoveredElements.size() != 0){
             for(TypeMirror foundKlass : new HashSet<>(discoveredElements.keySet())) {
-
-                penKnifeStep2GenerateBuilder.generateBuilder(foundKlass, discoveredElements.get(foundKlass), discoveredElementBindables.get(foundKlass));
+                TargettedSettingHolder defSettings = getOrDefaultSettings(discoveredElementSettings, foundKlass);
+                penKnifeStep2GenerateBuilder.generateBuilder(foundKlass, discoveredElements.get(foundKlass), defSettings);
+                penKnifeStep3Generate_Extractor_Injector.generateExtractor(foundKlass, discoveredElements.get(foundKlass), defSettings);
             }
 
         }
 
         for(Element element : roundEnv.getElementsAnnotatedWith(BoundMethod.class)){
-            messager.printMessage(Diagnostic.Kind.WARNING, "I'm here = " + Helpers.generateId(element));
+            messager.printMessage(Diagnostic.Kind.WARNING, "Method = " + element.getEnclosingElement().asType().toString());
 
             ExecutableElement methodElement = (ExecutableElement) element;
             List<? extends VariableElement> parameters = methodElement.getParameters();
             for (VariableElement parameter : parameters) {
-                messager.printMessage(Diagnostic.Kind.WARNING, "type = " + Helpers.generateId(parameter));
+                messager.printMessage(Diagnostic.Kind.WARNING, "Parameter = " + element.getEnclosingElement().asType().toString());
             }
         }
 
         return true;
+    }
+
+    public TargettedSettingHolder getOrDefaultSettings(Map<TypeMirror, TargettedSettingHolder> foundSettings, TypeMirror klass){
+        TargettedSettingHolder holder = foundSettings.get(klass);
+        if(holder == null){
+            holder = new TargettedSettingHolder(false, true);
+        }
+        return holder;
     }
 
     private void extractHelperTypeMirrors(RoundEnvironment roundEnv) {
@@ -127,5 +155,17 @@ public class PenKnifeProcessor extends AbstractProcessor{
         penKnifeStep1GenerateHelpers.generateHandlerStaticCast();
 
         penKnifeStep2GenerateBuilder = new PenKnifeStep2_GenerateBuilder(containerMirror, penKnifeStep1GenerateHelpers);
+
+        penKnifeStep3Generate_Extractor_Injector = new PenKnifeStep3Generate_Extractor_Injector(penKnifeStep1GenerateHelpers, penKnifeStep2GenerateBuilder);
+    }
+
+    public static class TargettedSettingHolder{
+        public final boolean MapToTarget;
+        public final boolean InjectDiscoveredElements;
+
+        public TargettedSettingHolder(boolean mapToTarget, boolean injectDiscoveredElements) {
+            MapToTarget = mapToTarget;
+            InjectDiscoveredElements = injectDiscoveredElements;
+        }
     }
 }
