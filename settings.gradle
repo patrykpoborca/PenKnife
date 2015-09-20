@@ -1,0 +1,1 @@
+include ':app', ':penknifeinterfaces', ':penknifeannotations', ':penknifeannotationprocessor', ':penknife-handler'
