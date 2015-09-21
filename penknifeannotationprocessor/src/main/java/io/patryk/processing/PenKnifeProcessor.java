@@ -21,6 +21,7 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
@@ -70,7 +71,7 @@ public class PenKnifeProcessor extends AbstractProcessor{
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        Map<TypeMirror, Map<String, List<Element>>> discoveredElements = new HashMap<>(4);
+        Map<TypeMirror, Map<String, PenKnifeClassItem>> discoveredElements = new HashMap<>(4);
         Map<TypeMirror, TargettedSettingHolder> discoveredElementSettings = new HashMap<>(4);
 
         if(containerMirror == null && handlerImplMirror == null) {
@@ -102,17 +103,19 @@ public class PenKnifeProcessor extends AbstractProcessor{
 
 
             if(!discoveredElements.containsKey(typeMirror)){
-                discoveredElements.put(typeMirror, new HashMap<String, Element>(5));
+                discoveredElements.put(typeMirror, new HashMap<String, PenKnifeClassItem>(5));
             }
 
 
             if(element.getKind().isClass()){
-                messager.printMessage(Diagnostic.Kind.WARNING, "Class = " + element.asType().toString());
+//                messager.printMessage(Diagnostic.Kind.WARNING, "Class = " + element.asType().toString());
                 penKnifeStep2GenerateBuilder.discoverElements(discoveredElements.get(typeMirror), element.getEnclosedElements());
             }
-            else if(element.getKind().isField()){
-                messager.printMessage(Diagnostic.Kind.WARNING, "Field = " + element.getEnclosingElement().asType().toString());
+            else if(!element.getModifiers().contains(Modifier.PRIVATE) && !element.getModifiers().contains(Modifier.PROTECTED)){
+//                messager.printMessage(Diagnostic.Kind.WARNING, "Field = " + element.getEnclosingElement().asType().toString());
 //                discoveredElements.get(typeMirror).add(element);
+                PenKnifeClassItem classItem = new PenKnifeClassItem(element);
+                discoveredElements.get(typeMirror).put(classItem.getId(), classItem);
             }
         }
 
@@ -126,12 +129,12 @@ public class PenKnifeProcessor extends AbstractProcessor{
         }
 
         for(Element element : roundEnv.getElementsAnnotatedWith(BoundMethod.class)){
-            messager.printMessage(Diagnostic.Kind.WARNING, "Method = " + element.getEnclosingElement().asType().toString());
+//            messager.printMessage(Diagnostic.Kind.WARNING, "Method = " + element.asType().toString());
 
             ExecutableElement methodElement = (ExecutableElement) element;
             List<? extends VariableElement> parameters = methodElement.getParameters();
             for (VariableElement parameter : parameters) {
-                messager.printMessage(Diagnostic.Kind.WARNING, "Parameter = " + element.getEnclosingElement().asType().toString());
+//                messager.printMessage(Diagnostic.Kind.WARNING, "Parameter = " + parameter.getEnclosingElement().asType().toString()); //.getSimpleName());
             }
         }
 

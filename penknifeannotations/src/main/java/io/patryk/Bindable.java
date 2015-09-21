@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Created by Patryk Poborca on 9/18/2015.
  */
 @Retention(RetentionPolicy.CLASS)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
 public @interface Bindable {
 
     /**

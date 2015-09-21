@@ -20,6 +20,7 @@ import javax.tools.Diagnostic;
 
 import io.patryk.PenKnife;
 import io.patryk.helper.Helpers;
+import io.patryk.processing.PenKnifeClassItem;
 import io.patryk.processing.PenKnifeProcessor;
 import io.patryk.processing.builder.PenKnifeStep2_GenerateBuilder;
 import io.patryk.processing.prepwork.PenKnifeStep1_GenerateHelpers;
@@ -67,7 +68,7 @@ public class PenKnifeStep3Generate_Extractor_Injector {
                 .build();
     }
 
-    public void generateExtractor(TypeMirror foundKlass, Map<String, Element> discoveredELements, PenKnifeProcessor.TargettedSettingHolder defSettings) {
+    public void generateExtractor(TypeMirror foundKlass, Map<String, PenKnifeClassItem> discoveredELements, PenKnifeProcessor.TargettedSettingHolder defSettings) {
 
         targettedClassInfo = Helpers.getPackage(foundKlass);
         classExtractorName = CLASS_EXTRACTOR_PREFIX + targettedClassInfo.className;
@@ -78,15 +79,15 @@ public class PenKnifeStep3Generate_Extractor_Injector {
 
 
         List<MethodSpec> generatedMethods;
-        for(String key : discoveredELements.keySet()){
-            generatedMethods = generateFetchMethod(key, discoveredELements.get(key));
+        for(PenKnifeClassItem classItem : discoveredELements.values()){
+            generatedMethods = generateFetchMethod(classItem);
 
             for(int i =0; i < generatedMethods.size(); i++) {
                 containerFetcher.addMethod(generatedMethods.get(i));
             }
 
             if(defSettings.InjectDiscoveredElements){
-                generateOrAddToInjectionMethod(key, discoveredELements, injectionMethods, generatedMethods);
+                generateOrAddToInjectionMethod(classItem, injectionMethods, generatedMethods);
             }
         }
 
@@ -105,10 +106,11 @@ public class PenKnifeStep3Generate_Extractor_Injector {
 
     }
 
-    private void generateOrAddToInjectionMethod(String storedElementKey, Map<String, Element> discoveredElements, Map<TypeMirror, MethodSpec.Builder> injectionMethods, List<MethodSpec> generatedMethods) {
-        Element discoveredElement = discoveredElements.get(storedElementKey);
+    private void generateOrAddToInjectionMethod(PenKnifeClassItem classItem, Map<TypeMirror, MethodSpec.Builder> injectionMethods, List<MethodSpec> generatedMethods) {
+        Element discoveredElement = classItem.getDiscoveredRootElement().getElement();
         Element classLevelElement = discoveredElement.getEnclosingElement();
         MethodSpec.Builder methodBuilder = null;
+
         if(!injectionMethods.containsKey(classLevelElement.asType())){
             methodBuilder = MethodSpec.methodBuilder(INJECTION_METHOD)
                     .returns(void.class)
@@ -118,35 +120,35 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         }
         methodBuilder = methodBuilder == null ? injectionMethods.get(classLevelElement.asType()) : methodBuilder;
 
-        if(discoveredElement instanceof ExecutableElement){
-            ExecutableElement methodElement = (ExecutableElement) discoveredElement;
-            List<? extends VariableElement> parameters = methodElement.getParameters();
-
-            for(int i = 0; i < parameters.size(); i++){
-
-            }
+        if(classItem.isMethod()){
+            step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "Ummm " + classItem.getDiscoveredRootElement().getElement().getSimpleName() + " size = " + classItem.getDiscoveredMethodElements().size());
+            methodBuilder.addStatement("$N." + Helpers.generateMethodCall(classItem, generatedMethods), INJECTABLE_PARAMETER);
         }
         else{
             methodBuilder.addStatement("$N.$L = $N()", INJECTABLE_PARAMETER, discoveredElement.getSimpleName(), generatedMethods.get(0));
         }
     }
 
-    private List<MethodSpec> generateFetchMethod(String key, Element element) {
+    private List<MethodSpec> generateFetchMethod(PenKnifeClassItem classItem) {
         List<MethodSpec> list = new ArrayList<>(1);
 
-        if(element instanceof ExecutableElement){
-            ExecutableElement executableElement = (ExecutableElement) element;
-
-
-
+        if(classItem.isMethod()){
+            for(int i =0; i < classItem.getDiscoveredMethodElements().size(); i++){
+                PenKnifeClassItem.DiscoveredElementWrapper wrapper = classItem.getDiscoveredMethodElements().get(i);
+                list.add(MethodSpec.methodBuilder(GETTER_METHOD_PREFIX + wrapper.getElement().getSimpleName())
+                        .returns(TypeName.get(wrapper.getElement().asType()))
+                        .addModifiers(Modifier.PUBLIC)
+                        .addStatement("return ($T) $L().get($L, $S)", wrapper.getElement().asType(), step1.getSmartCastMethod(), NAME_CONTAINER, wrapper.getGeneratedId())
+                        .build());
+            }
         }
         else {
-        list.add(MethodSpec.methodBuilder(GETTER_METHOD_PREFIX + element.getSimpleName())
-                .returns(TypeName.get(element.asType()))
-                .addModifiers(Modifier.PUBLIC)
-                .addStatement("return ($T) $L().get($L, $S)", element.asType(), step1.getSmartCastMethod(), NAME_CONTAINER, key)
-                .build());
-
+            list.add(MethodSpec.methodBuilder(GETTER_METHOD_PREFIX + classItem.getDiscoveredRootElement().getElement().getSimpleName())
+                    .returns(TypeName.get(classItem.getDiscoveredRootElement().getElement().asType()))
+                    .addModifiers(Modifier.PUBLIC)
+                    .addStatement("return ($T) $L().get($L, $S)", classItem.getDiscoveredRootElement().getElement().asType(), step1.getSmartCastMethod(), NAME_CONTAINER, classItem.getId())
+                    .build());
+        }
         return list;
     }
 

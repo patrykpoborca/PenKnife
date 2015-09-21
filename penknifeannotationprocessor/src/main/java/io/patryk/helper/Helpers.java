@@ -2,6 +2,7 @@ package io.patryk.helper;
 
 
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.MethodSpec;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import javax.lang.model.type.TypeMirror;
 import io.patryk.Bindable;
 import io.patryk.PKHandler;
 import io.patryk.PenKnifeTargetSettings;
+import io.patryk.processing.PenKnifeClassItem;
 
 /**
  * Created by Patryk Poborca on 9/19/2015.
@@ -78,6 +80,21 @@ public class Helpers {
                 .append(element.getKind() == ElementKind.METHOD || element.getKind() == ElementKind.PARAMETER
                         ? element.getEnclosingElement().asType().toString() : "")
                 .append(element.getSimpleName());
+
+        return builder.toString();
+    }
+
+    public static String generateMethodCall(PenKnifeClassItem element, List<MethodSpec> generatedMethods){
+        StringBuilder builder = new StringBuilder(element.getDiscoveredRootElement().getElement().getSimpleName()).append("(");
+
+        for(int i =0; i < generatedMethods.size(); i ++) {
+            builder.append(generatedMethods.get(i).name)
+                    .append("()");
+            if(i < generatedMethods.size() - 1){
+                builder.append(", ");
+            }
+        }
+        builder.append(")");
 
         return builder.toString();
     }

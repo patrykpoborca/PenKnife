@@ -23,6 +23,7 @@ import javax.tools.Diagnostic;
 import io.patryk.PKIgnore;
 import io.patryk.PenKnife;
 import io.patryk.helper.Helpers;
+import io.patryk.processing.PenKnifeClassItem;
 import io.patryk.processing.PenKnifeProcessor;
 import io.patryk.processing.prepwork.PenKnifeStep1_GenerateHelpers;
 
@@ -56,26 +57,20 @@ public class PenKnifeStep2_GenerateBuilder {
         this.step1 = step1;
     }
 
-    public void discoverElements(Map<String, Element> discoveredElements, List<? extends Element> enclosedElements) {
+    public void discoverElements(Map<String, PenKnifeClassItem> discoveredElements, List<? extends Element> enclosedElements) {
 
         for(Element element : enclosedElements){
-            if(element.getAnnotation(PKIgnore.class) == null && !element.getModifiers().contains(Modifier.PRIVATE)){
-                if(element instanceof ExecutableElement){
-                    List<? extends VariableElement> params = ((ExecutableElement) element).getParameters();
-
-                    for(int i =0; i < params.size(); i ++){
-                        discoveredElements.put(Helpers.generateId(params.get(i)), params.get(i));
-                    }
-                }
-                else {
-                    discoveredElements.put(Helpers.generateId(element), element);
-                }
+            if(element.getKind().isField() && element.getAnnotation(PKIgnore.class) == null
+                    && !element.getModifiers().contains(Modifier.PRIVATE)
+                    && !element.getModifiers().contains(Modifier.PROTECTED)){
+                PenKnifeClassItem discoveredPenItem = new PenKnifeClassItem(element);
+                discoveredElements.put(discoveredPenItem.getId(), discoveredPenItem);
             }
         }
     }
 
 
-    public void generateBuilder(TypeMirror targettedClass, Map<String, Element> discoveredElements, PenKnifeProcessor.TargettedSettingHolder settings) {
+    public void generateBuilder(TypeMirror targettedClass, Map<String, PenKnifeClassItem> discoveredElements, PenKnifeProcessor.TargettedSettingHolder settings) {
 
         this.settings = settings;
 
@@ -88,20 +83,17 @@ public class PenKnifeStep2_GenerateBuilder {
 
         generateInstantiationContainerMethods(containerBuilder);
         
-        for(String stringKey : discoveredElements.keySet()){
-            Element discoveredElement = discoveredElements.get(stringKey);
+        for(PenKnifeClassItem penKnifeItem : discoveredElements.values()){
 
-//            if(discoveredElement instanceof ExecutableElement){
-//                List<? extends VariableElement> parameterElements = ((ExecutableElement) discoveredElement).getParameters();
-//
-//                for(int i =0 ; i < parameterElements.size(); i ++){
-//                    String generatedID =
-//                    containerBuilder.addMethod(generateAddMethod(parameterElements.get(i), para))
-//                }
-//            }
-//            else(discoveredElement instanceof VariableElement == false){
-                containerBuilder.addMethod(generateAddMethod(discoveredElement, stringKey));
-//            }
+            if(penKnifeItem.isMethod()){
+                for(int i =0; i < penKnifeItem.getDiscoveredMethodElements().size(); i ++){
+                    PenKnifeClassItem.DiscoveredElementWrapper wrapper = penKnifeItem.getDiscoveredMethodElements().get(i);
+                    containerBuilder.addMethod(generateAddMethod(wrapper.getElement(), wrapper.getGeneratedId()));
+                }
+            }
+            else {
+                containerBuilder.addMethod(generateAddMethod(penKnifeItem.getDiscoveredRootElement().getElement(), penKnifeItem.getId()));
+            }
         }
 
 
