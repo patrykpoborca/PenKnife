@@ -11,10 +11,16 @@
       <entry name="!?*.flex" />
       <entry name="!?*.kt" />
       <entry name="!?*.clj" />
-      <entry name="!?*.aj" />
     </wildcardResourcePatterns>
     <annotationProcessing>
-      <profile default="true" name="Default" enabled="false">
+      <profile default="true" name="Default" enabled="true">
+        <option name="shroud" value="" />
+        <processor name="com.patryk.ShroudProcessor" />
+        <processorPath useClasspath="true" />
+      </profile>
+      <profile default="false" name="shrouded" enabled="true">
+        <option name="shroud" value="" />
+        <processor name="com.patryk.ShroudProcessor" />
         <processorPath useClasspath="true" />
       </profile>
     </annotationProcessing>

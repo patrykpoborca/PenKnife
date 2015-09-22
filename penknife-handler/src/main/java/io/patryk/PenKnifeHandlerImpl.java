@@ -54,6 +54,7 @@ public class PenKnifeHandlerImpl implements PenKnifeHandler<Bundle> {
     public Object map(Bundle container, Object annotatedObject) {
         if (annotatedObject instanceof Fragment) {
             ((Fragment) annotatedObject).setArguments(container);
+            return annotatedObject;
         }
         //No impl for Activity.
         return null;
@@ -61,11 +62,11 @@ public class PenKnifeHandlerImpl implements PenKnifeHandler<Bundle> {
 
     @Override
     public Object get(Bundle container, String generatedId) {
-        return null;
+        return container.get(generatedId);
     }
 
     @Override
     public Bundle finalize(Bundle bundle) {
-        return null;
+        return bundle;
     }
 }

@@ -77,7 +77,8 @@ public class PenKnifeStep2_GenerateBuilder {
         targettedClassInfo = Helpers.getPackage(targettedClass);
         generatedContainerBuilderClassName = CLASS_GENERATOR_PREFIX + targettedClassInfo.className;
         thisClasses_ClassName = ClassName.get(targettedClassInfo.classPackage, generatedContainerBuilderClassName);
-        TypeSpec.Builder containerBuilder = TypeSpec.classBuilder(generatedContainerBuilderClassName);
+        TypeSpec.Builder containerBuilder = TypeSpec.classBuilder(generatedContainerBuilderClassName)
+                        .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
 
 
 
@@ -137,13 +138,14 @@ public class PenKnifeStep2_GenerateBuilder {
         MethodSpec realConstructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(containerTypeName, NAME_CONTAINER)
-                .addStatement("$T dummyVariable", PenKnife.class)
+//                .addStatement("$T dummyVariable", PenKnife.class)
                 .addStatement("this.$N = $N", NAME_CONTAINER, NAME_CONTAINER).build();
         classBuilder.addMethod(realConstructor);
         
         MethodSpec newBuilderMethod = MethodSpec.methodBuilder("builder")
                 .returns(thisClasses_ClassName)
-                .addParameter(containerTypeName, NAME_CONTAINER)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+//                .addParameter(containerTypeName, NAME_CONTAINER)
                 .addStatement("return new $L($L().newContainer())",
                         generatedContainerBuilderClassName,
                         step1.getSmartCastMethod())

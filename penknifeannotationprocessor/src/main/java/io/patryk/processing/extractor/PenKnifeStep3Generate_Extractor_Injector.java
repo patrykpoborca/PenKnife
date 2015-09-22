@@ -1,5 +1,6 @@
 package io.patryk.processing.extractor;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -39,6 +40,7 @@ public class PenKnifeStep3Generate_Extractor_Injector {
     private String classExtractorName;
     private Helpers.ClassNameAndPackage targettedClassInfo;
     private TypeSpec.Builder containerFetcher;
+    private ClassName ThisClassesName;
 
     public PenKnifeStep3Generate_Extractor_Injector(PenKnifeStep1_GenerateHelpers penKnifeStep1GenerateHelpers, PenKnifeStep2_GenerateBuilder penKnifeStep2GenerateBuilder) {
         this.step1 = penKnifeStep1GenerateHelpers;
@@ -53,26 +55,29 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         MethodSpec realConstructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(step2.getContainerTypeName(), NAME_CONTAINER)
-                .addStatement("$T dummyVariable", PenKnife.class)
+//                .addStatement("$T dummyVariable", PenKnife.class)
                 .addStatement("this.$N = $N", NAME_CONTAINER, NAME_CONTAINER).build();
         containerFetcher.addMethod(realConstructor);
 
-        MethodSpec newBuilderMethod = MethodSpec.methodBuilder("builder")
-                .returns(step2.getThisClasses_ClassName())
+        MethodSpec newBuilderMethod = MethodSpec.methodBuilder("newInstance")
+                .returns(ThisClassesName)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addParameter(step2.getContainerTypeName(), NAME_CONTAINER)
-                .addStatement("return new $L($N))",
-                        step2.getGeneratedContainerBuilderClassName(),
-                        step1.getSmartCastMethod(),
+                .addStatement("return new $N($N)",
+                        ThisClassesName.simpleName(),
                         NAME_CONTAINER)
                 .build();
+        containerFetcher.addMethod(newBuilderMethod);
     }
 
     public void generateExtractor(TypeMirror foundKlass, Map<String, PenKnifeClassItem> discoveredELements, PenKnifeProcessor.TargettedSettingHolder defSettings) {
 
         targettedClassInfo = Helpers.getPackage(foundKlass);
         classExtractorName = CLASS_EXTRACTOR_PREFIX + targettedClassInfo.className;
-        containerFetcher = TypeSpec.classBuilder(classExtractorName);
+        ThisClassesName = ClassName.get(targettedClassInfo.classPackage, classExtractorName);
+        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, ThisClassesName.packageName() + " + " + ThisClassesName.simpleName());
+        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, targettedClassInfo.classPackage + " + " + targettedClassInfo.className);
+        containerFetcher = TypeSpec.classBuilder(classExtractorName).addModifiers(Modifier.PUBLIC, Modifier.FINAL);
         generateExtractionContainerMethods();
         //Enclosing Target, InjectionMethod
         Map<TypeMirror, MethodSpec.Builder> injectionMethods = new HashMap<>(discoveredELements.size());

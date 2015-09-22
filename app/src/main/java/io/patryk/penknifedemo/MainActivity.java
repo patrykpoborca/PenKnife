@@ -5,15 +5,42 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import io.patryk.penknifedemo.model.SerializedUser;
+import io.patryk.penknifedemo.result.PKBuildResultActivity;
 
 public class MainActivity extends AppCompatActivity {
+
+    private View buttonView;
+    private CheckBox booleanView;
+    private EditText ageView;
+    private EditText nameView;
+    private TextView welcomeMessage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
+        nameView = (EditText) findViewById(R.id.name);
+        ageView = (EditText) findViewById(R.id.age);
+        booleanView = (CheckBox) findViewById(R.id.check_box);
+        buttonView = findViewById(R.id.button);
+        welcomeMessage = (TextView) findViewById(R.id.welcome_message);
+        buttonView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Bundle bundle = PKBuildResultActivity.builder()
+                        .provideflag(booleanView.isChecked())
+                        .providemessage(welcomeMessage.getText().toString())
+                        .provideuser(new SerializedUser(nameView.getText().toString(), Integer.parseInt(ageView.getText().toString())))
+                        .build();
+            }
+        });
     }
 
     @Override
