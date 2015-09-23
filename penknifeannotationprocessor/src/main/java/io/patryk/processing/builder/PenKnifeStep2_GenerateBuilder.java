@@ -7,21 +7,17 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
 import io.patryk.PKIgnore;
-import io.patryk.PenKnife;
 import io.patryk.helper.Helpers;
 import io.patryk.processing.PenKnifeClassItem;
 import io.patryk.processing.PenKnifeProcessor;
@@ -98,7 +94,7 @@ public class PenKnifeStep2_GenerateBuilder {
         }
 
 
-        containerBuilder.addMethod(generateFinalizeContainerMethod(targettedClass));
+        containerBuilder.addMethod(generateFinalizeContainerMethod());
 
         try {
             JavaFile.builder(targettedClassInfo.classPackage, containerBuilder.build()).build().writeTo(filer);
@@ -111,19 +107,17 @@ public class PenKnifeStep2_GenerateBuilder {
     }
 
 
-    private MethodSpec generateFinalizeContainerMethod(TypeMirror targettedClass) {
+    private MethodSpec generateFinalizeContainerMethod() {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("build")
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement("$N = $L().finalize($N)", NAME_CONTAINER, step1.getSmartCastMethod(), NAME_CONTAINER);
 
-        if(settings.MapToTarget){
-            Helpers.ClassNameAndPackage info = Helpers.getPackage(targettedClass);
-            ClassName returnType = ClassName.get(info.classPackage, info.className);
-            builder.addStatement("return ($L) $L().map($N, new $T())", returnType,step1.getSmartCastMethod(), NAME_CONTAINER, returnType)
-            .returns(TypeName.get(targettedClass));
+        if(settings.TranslatedClass != null){
+
+            builder.addStatement("return ($L) $L().map($N, $T())", settings.TranslatedClass, step1.getSmartCastMethod(), NAME_CONTAINER, settings.TranslatedClass)
+            .returns(TypeName.get(settings.TranslatedClass));
         }
         else {
-            ClassName returnName = Helpers.getClassName(targettedClassInfo);
             builder.returns(containerTypeName)
                 .addStatement("return $N", NAME_CONTAINER);
         }
@@ -138,14 +132,12 @@ public class PenKnifeStep2_GenerateBuilder {
         MethodSpec realConstructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(containerTypeName, NAME_CONTAINER)
-//                .addStatement("$T dummyVariable", PenKnife.class)
                 .addStatement("this.$N = $N", NAME_CONTAINER, NAME_CONTAINER).build();
         classBuilder.addMethod(realConstructor);
         
         MethodSpec newBuilderMethod = MethodSpec.methodBuilder("builder")
                 .returns(thisClasses_ClassName)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-//                .addParameter(containerTypeName, NAME_CONTAINER)
                 .addStatement("return new $L($L().newContainer())",
                         generatedContainerBuilderClassName,
                         step1.getSmartCastMethod())

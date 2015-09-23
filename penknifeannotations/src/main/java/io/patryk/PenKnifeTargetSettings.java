@@ -11,8 +11,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface PenKnifeTargetSettings {
-
-    Class<?>[] value();
-    boolean[] mapToValue();
-    boolean[] injectTarget();
+    Class<?> translateToClass();
+    boolean createInjectionMethod() default true;
 }

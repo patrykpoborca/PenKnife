@@ -8,9 +8,7 @@ import java.util.List;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.MirroredTypeException;
-import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
 
 import io.patryk.Bindable;
@@ -99,14 +97,14 @@ public class Helpers {
         return builder.toString();
     }
 
-    public static List<? extends TypeMirror> getMirrorTypes(PenKnifeTargetSettings settings) {
+    public static TypeMirror getTranslatedClass(PenKnifeTargetSettings settings) {
         try{
-            settings.value();
+            settings.translateToClass();
         }
-        catch (MirroredTypesException exception){
-            return exception.getTypeMirrors();
+        catch (MirroredTypeException exception){
+            return exception.getTypeMirror();
         }
-        throw new IllegalStateException("Shouldn't get here. Mirrored Types exception didn't occur");
+        return null;
     }
 
     public static class ClassNameAndPackage{

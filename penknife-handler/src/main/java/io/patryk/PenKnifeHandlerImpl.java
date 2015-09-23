@@ -51,18 +51,23 @@ public class PenKnifeHandlerImpl implements PenKnifeHandler<Bundle> {
     }
 
     @Override
-    public Object map(Bundle container, Object annotatedObject) {
-        if (annotatedObject instanceof Fragment) {
-            ((Fragment) annotatedObject).setArguments(container);
-            return annotatedObject;
+    public Object map(Bundle container, Class<?> annotatedObject) {
+        if (Fragment.class.equals(annotatedObject)) {
+            Fragment fragment = new Fragment();
+            fragment.setArguments(container);
+            return fragment;
         }
         //No impl for Activity.
         return null;
     }
 
     @Override
-    public Object get(Bundle container, String generatedId) {
-        return container.get(generatedId);
+    public Object get(Bundle container, String generatedId, Class<?> containerItemClass) {
+        if(containerItemClass.isPrimitive() || String.class.equals(containerItemClass)){
+            return container.get(generatedId);
+        }
+
+        return gson.fromJson((String) container.get(generatedId), containerItemClass);
     }
 
     @Override

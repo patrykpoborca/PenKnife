@@ -38,9 +38,9 @@ public interface PenKnifeHandler<ContainerType> {
 
     ContainerType set(ContainerType container, String generatedId, String someString);
 
-    Object get(ContainerType container, String generatedId);
+    Object get(ContainerType container, String generatedId, Class<?> containerItemClass);
 
-    Object map(ContainerType container, Object annotatedObject);
+    Object map(ContainerType container, Class<?> desiredClass);
 
     ContainerType finalize(ContainerType containerType);
 

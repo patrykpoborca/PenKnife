@@ -55,7 +55,6 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         MethodSpec realConstructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(step2.getContainerTypeName(), NAME_CONTAINER)
-//                .addStatement("$T dummyVariable", PenKnife.class)
                 .addStatement("this.$N = $N", NAME_CONTAINER, NAME_CONTAINER).build();
         containerFetcher.addMethod(realConstructor);
 
@@ -126,7 +125,6 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         methodBuilder = methodBuilder == null ? injectionMethods.get(classLevelElement.asType()) : methodBuilder;
 
         if(classItem.isMethod()){
-            step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "Ummm " + classItem.getDiscoveredRootElement().getElement().getSimpleName() + " size = " + classItem.getDiscoveredMethodElements().size());
             methodBuilder.addStatement("$N." + Helpers.generateMethodCall(classItem, generatedMethods), INJECTABLE_PARAMETER);
         }
         else{
@@ -143,7 +141,8 @@ public class PenKnifeStep3Generate_Extractor_Injector {
                 list.add(MethodSpec.methodBuilder(GETTER_METHOD_PREFIX + wrapper.getElement().getSimpleName())
                         .returns(TypeName.get(wrapper.getElement().asType()))
                         .addModifiers(Modifier.PUBLIC)
-                        .addStatement("return ($T) $L().get($L, $S)", wrapper.getElement().asType(), step1.getSmartCastMethod(), NAME_CONTAINER, wrapper.getGeneratedId())
+                        .addStatement("return ($T) $L().get($L, $S, $T.class)", wrapper.getElement().asType(), step1.getSmartCastMethod(), NAME_CONTAINER, wrapper.getGeneratedId(),
+                                classItem.getDiscoveredMethodElements().get(i).getElement().asType())
                         .build());
             }
         }
@@ -151,7 +150,8 @@ public class PenKnifeStep3Generate_Extractor_Injector {
             list.add(MethodSpec.methodBuilder(GETTER_METHOD_PREFIX + classItem.getDiscoveredRootElement().getElement().getSimpleName())
                     .returns(TypeName.get(classItem.getDiscoveredRootElement().getElement().asType()))
                     .addModifiers(Modifier.PUBLIC)
-                    .addStatement("return ($T) $L().get($L, $S)", classItem.getDiscoveredRootElement().getElement().asType(), step1.getSmartCastMethod(), NAME_CONTAINER, classItem.getId())
+                    .addStatement("return ($T) $L().get($L, $S, $T.class)", classItem.getDiscoveredRootElement().getElement().asType(), step1.getSmartCastMethod(),
+                            NAME_CONTAINER, classItem.getId(), classItem.getDiscoveredRootElement().getElement().asType())
                     .build());
         }
         return list;

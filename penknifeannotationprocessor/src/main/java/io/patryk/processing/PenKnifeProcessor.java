@@ -1,10 +1,7 @@
 package io.patryk.processing;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.ImmutableSet;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,7 +14,6 @@ import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
-import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
@@ -81,17 +77,16 @@ public class PenKnifeProcessor extends AbstractProcessor{
         TypeMirror typeMirror = null;
         Bindable bindable;
         PenKnifeTargetSettings settings;
-        boolean[] mapToValues;
-        boolean[] injectDiscoveredElements;
+
+        boolean injectDiscoveredElements;
         for(Element element : roundEnv.getElementsAnnotatedWith(PenKnifeTargetSettings.class)){
             settings = element.getAnnotation(PenKnifeTargetSettings.class);
-            List<? extends TypeMirror> listOfKlass = Helpers.getMirrorTypes(settings);
-            mapToValues = settings.mapToValue();
-            injectDiscoveredElements = settings.injectTarget();
+            TypeMirror translatedClass = Helpers.getTranslatedClass(settings);
+            messager.printMessage(Diagnostic.Kind.WARNING, "Umm -> " + translatedClass);
+            injectDiscoveredElements = settings.createInjectionMethod();
 
-            for(int i =0; i < listOfKlass.size(); i ++){
-                discoveredElementSettings.put(listOfKlass.get(i), new TargettedSettingHolder(mapToValues[i], injectDiscoveredElements[i]));
-            }
+
+            discoveredElementSettings.put(element.asType(), new TargettedSettingHolder(translatedClass, injectDiscoveredElements));
         }
 
         for(Element element : roundEnv.getElementsAnnotatedWith(Bindable.class)){
@@ -144,7 +139,7 @@ public class PenKnifeProcessor extends AbstractProcessor{
     public TargettedSettingHolder getOrDefaultSettings(Map<TypeMirror, TargettedSettingHolder> foundSettings, TypeMirror klass){
         TargettedSettingHolder holder = foundSettings.get(klass);
         if(holder == null){
-            holder = new TargettedSettingHolder(false, true);
+            holder = new TargettedSettingHolder(null, true);
         }
         return holder;
     }
@@ -163,11 +158,11 @@ public class PenKnifeProcessor extends AbstractProcessor{
     }
 
     public static class TargettedSettingHolder{
-        public final boolean MapToTarget;
+        public final TypeMirror TranslatedClass;
         public final boolean InjectDiscoveredElements;
 
-        public TargettedSettingHolder(boolean mapToTarget, boolean injectDiscoveredElements) {
-            MapToTarget = mapToTarget;
+        public TargettedSettingHolder(TypeMirror translatedClass, boolean injectDiscoveredElements) {
+            TranslatedClass = translatedClass;
             InjectDiscoveredElements = injectDiscoveredElements;
         }
     }

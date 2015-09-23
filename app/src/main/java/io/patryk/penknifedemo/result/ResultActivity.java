@@ -1,18 +1,19 @@
 package io.patryk.penknifedemo.result;
 
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
-import android.widget.EditText;
 import android.widget.TextView;
 
+import io.patryk.PenKnifeTargetSettings;
 import io.patryk.penknifedemo.R;
 import io.patryk.penknifedemo.base.BasePresenterActivity;
 import io.patryk.penknifedemo.model.SerializedUser;
 
+@PenKnifeTargetSettings(translateToClass =  Intent.class, createInjectionMethod = true)
 public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> implements IResultView{
 
     private View buttonView;
