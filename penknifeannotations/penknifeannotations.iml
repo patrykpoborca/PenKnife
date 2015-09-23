@@ -28,6 +28,5 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="penknifeinterfaces" exported="" />
-    <orderEntry type="library" exported="" name="penknifeannotations.penknifeannotations" level="project" />
   </component>
 </module>

@@ -8,6 +8,8 @@ import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
+import io.patryk.Bindable;
 import io.patryk.PenKnife;
 import io.patryk.helper.Helpers;
 import io.patryk.processing.PenKnifeClassItem;
@@ -69,7 +72,7 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         containerFetcher.addMethod(newBuilderMethod);
     }
 
-    public void generateExtractor(TypeMirror foundKlass, Map<String, PenKnifeClassItem> discoveredELements, PenKnifeProcessor.TargettedSettingHolder defSettings) {
+    public void generateExtractor(TypeMirror foundKlass, final Map<String, PenKnifeClassItem> discoveredELements, PenKnifeProcessor.TargettedSettingHolder defSettings) {
 
         targettedClassInfo = Helpers.getPackage(foundKlass);
         classExtractorName = CLASS_EXTRACTOR_PREFIX + targettedClassInfo.className;
@@ -83,7 +86,44 @@ public class PenKnifeStep3Generate_Extractor_Injector {
 
 
         List<MethodSpec> generatedMethods;
-        for(PenKnifeClassItem classItem : discoveredELements.values()){
+
+        List<PenKnifeClassItem> organizedList = new ArrayList<>(discoveredELements.values());
+        if(organizedList.size() > 1) {
+            Collections.sort(organizedList, new Comparator<PenKnifeClassItem>() {
+                @Override
+                public int compare(PenKnifeClassItem o1, PenKnifeClassItem o2) {
+//                    Bindable left = o1.getDiscoveredRootElement().getElement().getAnnotation(Bindable.class);
+//                    Bindable right = o2.getDiscoveredRootElement().getElement().getAnnotation(Bindable.class);
+//
+                    if(o1.getRootBindable() == null){
+                        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "Right = > " + o2.getDiscoveredRootElement().getElement().asType() + " name: " +  o2.getDiscoveredRootElement().getElement().getSimpleName());
+                        if(o2.getDiscoveredMethodElements().size() > 0) {
+                            step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "Right = > " + o2.getDiscoveredMethodElements().get(0).getElement().getAnnotation(Bindable.class));
+                        }
+                    }
+                    else if(o2.getRootBindable() == null){
+                        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "left = > " + o1.getDiscoveredRootElement().getElement().asType() + " name: " + o2.getDiscoveredRootElement().getElement().getSimpleName());
+                    }
+//
+                    if(o1.getRootBindable() == null){
+                        return 1;
+                    }
+                    else if(o2.getRootBindable() == null){
+                        return -1;
+                    }
+//                    if(right == null){
+//                        return -1;
+//                    }
+//                    else if(left == null){
+//                        return 1;
+//                    }
+
+                    return o1.getRootBindable().priorityOfTarget() < o2.getRootBindable().priorityOfTarget() ? 1 : -1;
+                }
+            });
+        }
+
+        for(PenKnifeClassItem classItem : organizedList){
             generatedMethods = generateFetchMethod(classItem);
 
             for(int i =0; i < generatedMethods.size(); i++) {

@@ -1,5 +1,6 @@
 package io.patryk;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 
@@ -52,13 +53,26 @@ public class PenKnifeHandlerImpl implements PenKnifeHandler<Bundle> {
 
     @Override
     public Object map(Bundle container, Class<?> annotatedObject) {
-        if (Fragment.class.equals(annotatedObject)) {
-            Fragment fragment = new Fragment();
+        if (Intent.class.equals(annotatedObject)) {
+            Intent intent = new Intent();
+            intent.putExtras(container);
+            return intent;
+        }
+        else if(Fragment.class.equals(annotatedObject)){
+            Fragment fragment = null;
+            try {
+                fragment = (Fragment) annotatedObject.newInstance();
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
             fragment.setArguments(container);
             return fragment;
         }
-        //No impl for Activity.
-        return null;
+        else{
+            return container;
+        }
     }
 
     @Override

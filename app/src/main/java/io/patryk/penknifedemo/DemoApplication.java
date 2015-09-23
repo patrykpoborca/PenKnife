@@ -4,6 +4,7 @@ import android.app.Application;
 import android.os.Bundle;
 
 import io.patryk.PKHandler;
+import io.patryk.PenKnife;
 import io.patryk.PenKnifeHandlerImpl;
 
 /**
@@ -13,4 +14,9 @@ import io.patryk.PenKnifeHandlerImpl;
 @PKHandler(container = Bundle.class, handlerImpl = PenKnifeHandlerImpl.class)
 public class DemoApplication extends Application {
 
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        PenKnife.initialize(new PenKnifeHandlerImpl());
+    }
 }

@@ -8,12 +8,14 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
 
+import io.patryk.Bindable;
 import io.patryk.PenKnifeTargetSettings;
 import io.patryk.penknifedemo.R;
 import io.patryk.penknifedemo.base.BasePresenterActivity;
 import io.patryk.penknifedemo.model.SerializedUser;
 
 @PenKnifeTargetSettings(translateToClass =  Intent.class, createInjectionMethod = true)
+@Bindable(ResultActivity.class)
 public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> implements IResultView{
 
     private View buttonView;
@@ -21,6 +23,8 @@ public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> i
     private TextView ageView;
     private TextView nameView;
     private TextView welcomeMessage;
+
+    public String toastTest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +41,10 @@ public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> i
     }
 
 
+    @Bindable(ResultActivity.class)
+    public void emptyMethod(){
+
+    }
 
 
     @Override
@@ -69,7 +77,7 @@ public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> i
 
     @Override
     public void showUser(SerializedUser user) {
-        ageView.setText(user.getAge());
+        ageView.setText(Integer.toString(user.getAge()));
         nameView.setText(user.getName());
     }
 

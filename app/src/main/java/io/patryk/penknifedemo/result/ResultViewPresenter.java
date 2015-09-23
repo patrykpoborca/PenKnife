@@ -14,7 +14,7 @@ public class ResultViewPresenter extends CrudeBasePresenter<IResultView>{
         getView().showUser(user);
     }
 
-    @Bindable(ResultActivity.class)
+    @Bindable(value = ResultActivity.class, priorityOfTarget = 1)
     public void injectMessageAndBoolean(boolean flag, String message){
         getView().showWelcomeMessageAndFlag(message, flag);
     }

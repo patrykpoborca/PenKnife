@@ -109,7 +109,7 @@ public class PenKnifeProcessor extends AbstractProcessor{
             else if(!element.getModifiers().contains(Modifier.PRIVATE) && !element.getModifiers().contains(Modifier.PROTECTED)){
 //                messager.printMessage(Diagnostic.Kind.WARNING, "Field = " + element.getEnclosingElement().asType().toString());
 //                discoveredElements.get(typeMirror).add(element);
-                PenKnifeClassItem classItem = new PenKnifeClassItem(element);
+                PenKnifeClassItem classItem = new PenKnifeClassItem(element, bindable);
                 discoveredElements.get(typeMirror).put(classItem.getId(), classItem);
             }
         }
@@ -121,16 +121,6 @@ public class PenKnifeProcessor extends AbstractProcessor{
                 penKnifeStep3Generate_Extractor_Injector.generateExtractor(foundKlass, discoveredElements.get(foundKlass), defSettings);
             }
 
-        }
-
-        for(Element element : roundEnv.getElementsAnnotatedWith(BoundMethod.class)){
-//            messager.printMessage(Diagnostic.Kind.WARNING, "Method = " + element.asType().toString());
-
-            ExecutableElement methodElement = (ExecutableElement) element;
-            List<? extends VariableElement> parameters = methodElement.getParameters();
-            for (VariableElement parameter : parameters) {
-//                messager.printMessage(Diagnostic.Kind.WARNING, "Parameter = " + parameter.getEnclosingElement().asType().toString()); //.getSimpleName());
-            }
         }
 
         return true;

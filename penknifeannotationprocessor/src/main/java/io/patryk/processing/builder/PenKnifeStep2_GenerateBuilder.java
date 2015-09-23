@@ -17,6 +17,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
+import io.patryk.Bindable;
 import io.patryk.PKIgnore;
 import io.patryk.helper.Helpers;
 import io.patryk.processing.PenKnifeClassItem;
@@ -59,7 +60,7 @@ public class PenKnifeStep2_GenerateBuilder {
             if(element.getKind().isField() && element.getAnnotation(PKIgnore.class) == null
                     && !element.getModifiers().contains(Modifier.PRIVATE)
                     && !element.getModifiers().contains(Modifier.PROTECTED)){
-                PenKnifeClassItem discoveredPenItem = new PenKnifeClassItem(element);
+                PenKnifeClassItem discoveredPenItem = new PenKnifeClassItem(element, element.getAnnotation(Bindable.class));
                 discoveredElements.put(discoveredPenItem.getId(), discoveredPenItem);
             }
         }
@@ -114,7 +115,7 @@ public class PenKnifeStep2_GenerateBuilder {
 
         if(settings.TranslatedClass != null){
 
-            builder.addStatement("return ($L) $L().map($N, $T())", settings.TranslatedClass, step1.getSmartCastMethod(), NAME_CONTAINER, settings.TranslatedClass)
+            builder.addStatement("return ($L) $L().map($N, $T.class)", settings.TranslatedClass, step1.getSmartCastMethod(), NAME_CONTAINER, settings.TranslatedClass)
             .returns(TypeName.get(settings.TranslatedClass));
         }
         else {

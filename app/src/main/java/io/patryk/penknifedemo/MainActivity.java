@@ -1,6 +1,7 @@
 package io.patryk.penknifedemo;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -12,6 +13,7 @@ import android.widget.TextView;
 
 import io.patryk.penknifedemo.model.SerializedUser;
 import io.patryk.penknifedemo.result.PKBuildResultActivity;
+import io.patryk.penknifedemo.result.ResultActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,11 +36,13 @@ public class MainActivity extends AppCompatActivity {
         buttonView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Bundle bundle = PKBuildResultActivity.builder()
+                Intent intent = PKBuildResultActivity.builder()
                         .provideflag(booleanView.isChecked())
                         .providemessage(welcomeMessage.getText().toString())
                         .provideuser(new SerializedUser(nameView.getText().toString(), Integer.parseInt(ageView.getText().toString())))
                         .build();
+                intent.setClass(MainActivity.this, ResultActivity.class);
+                startActivity(intent);
             }
         });
     }

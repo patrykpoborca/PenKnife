@@ -8,6 +8,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 
+import io.patryk.Bindable;
 import io.patryk.helper.Helpers;
 
 /**
@@ -17,9 +18,11 @@ public class PenKnifeClassItem {
 
     private final DiscoveredElementWrapper discoveredRootElement;
     private final List<DiscoveredElementWrapper> discoveredMethodElements;
+    private final Bindable rootBindable;
 
-    public PenKnifeClassItem(Element rootElement){
+    public PenKnifeClassItem(Element rootElement, Bindable bindable){
 
+        rootBindable = bindable;
         discoveredRootElement = new DiscoveredElementWrapper(rootElement);
 
         if(rootElement instanceof ExecutableElement && !rootElement.getKind().isClass()){
@@ -33,6 +36,10 @@ public class PenKnifeClassItem {
         else{
             discoveredMethodElements = null;
         }
+    }
+
+    public Bindable getRootBindable() {
+        return rootBindable;
     }
 
     public DiscoveredElementWrapper getDiscoveredRootElement() {

@@ -17,4 +17,10 @@ public @interface Bindable {
      * @return
      */
     Class<?> value();
+
+    /**
+     * The lower the value less priority. Will call annotated elements with high priority first
+     * @return
+     */
+    int priorityOfTarget() default 0;
 }
