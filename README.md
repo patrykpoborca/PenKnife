@@ -51,6 +51,10 @@ As you can see, by default the default settings will cause your PKBuild to retur
         //container = class of desired java container, handlerImpl points to your IMPL of PenKnifeHandler
         @PKHandler(container = Bundle.class, handlerImpl = PenKnifeHandlerImpl.class)
 
+* Add this line of code to your application's OnCreate (Could be any PenKnifeHandler implementation):
+
+    PenKnife.initialize(new PenKnifeHandlerImpl());
+    
 * Done. Now your project is ready to be annotated!
 
 ## Optional settings
