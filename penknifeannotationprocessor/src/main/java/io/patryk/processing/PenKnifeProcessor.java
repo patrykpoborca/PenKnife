@@ -4,7 +4,6 @@ import com.google.auto.service.AutoService;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,15 +15,11 @@ import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
-import javax.tools.Diagnostic;
 
-import io.patryk.Bindable;
-import io.patryk.BoundMethod;
+import io.patryk.PKBind;
 import io.patryk.PKHandler;
 import io.patryk.PenKnifeTargetSettings;
 import io.patryk.helper.Helpers;
@@ -47,8 +42,7 @@ public class PenKnifeProcessor extends AbstractProcessor{
     public Set<String> getSupportedAnnotationTypes() {
         Set<String> set = new HashSet<>(3);
         set.add(PKHandler.class.getCanonicalName());
-        set.add(Bindable.class.getCanonicalName());
-        set.add(BoundMethod.class.getCanonicalName());
+        set.add(PKBind.class.getCanonicalName());
         return set;
     }
 
@@ -75,47 +69,45 @@ public class PenKnifeProcessor extends AbstractProcessor{
         }
 
         TypeMirror typeMirror = null;
-        Bindable bindable;
+        PKBind PKBind;
         PenKnifeTargetSettings settings;
 
         boolean injectDiscoveredElements;
+        // Find Penknifesettings for each tagged class
         for(Element element : roundEnv.getElementsAnnotatedWith(PenKnifeTargetSettings.class)){
             settings = element.getAnnotation(PenKnifeTargetSettings.class);
             TypeMirror translatedClass = Helpers.getTranslatedClass(settings);
-            messager.printMessage(Diagnostic.Kind.WARNING, "Umm -> " + translatedClass);
             injectDiscoveredElements = settings.createInjectionMethod();
-
 
             discoveredElementSettings.put(element.asType(), new TargettedSettingHolder(translatedClass, injectDiscoveredElements));
         }
 
-        for(Element element : roundEnv.getElementsAnnotatedWith(Bindable.class)){
+        // Find any element (class/field/method) which is mean to be bound
+        for(Element element : roundEnv.getElementsAnnotatedWith(PKBind.class)){
 
+            PKBind = element.getAnnotation(PKBind.class);
+            typeMirror = Helpers.getBindableTargetClass(PKBind);
 
-
-            bindable = element.getAnnotation(Bindable.class);
-            typeMirror = Helpers.getBindableTargetClass(bindable);
-
-
+            // instantiate new list
             if(!discoveredElements.containsKey(typeMirror)){
                 discoveredElements.put(typeMirror, new HashMap<String, PenKnifeClassItem>(5));
             }
 
 
             if(element.getKind().isClass()){
-//                messager.printMessage(Diagnostic.Kind.WARNING, "Class = " + element.asType().toString());
-                penKnifeStep2GenerateBuilder.discoverElements(discoveredElements.get(typeMirror), element.getEnclosedElements());
+                // discover any public fields
+                penKnifeStep2GenerateBuilder.discoverElements(discoveredElements.get(typeMirror), element);
             }
             else if(!element.getModifiers().contains(Modifier.PRIVATE) && !element.getModifiers().contains(Modifier.PROTECTED)){
-//                messager.printMessage(Diagnostic.Kind.WARNING, "Field = " + element.getEnclosingElement().asType().toString());
-//                discoveredElements.get(typeMirror).add(element);
-                PenKnifeClassItem classItem = new PenKnifeClassItem(element, bindable);
+                // grab any specifically tagged fields or methods
+                PenKnifeClassItem classItem = new PenKnifeClassItem(element, new PenKnifeClassItem.BindableWrapper(PKBind));
                 discoveredElements.get(typeMirror).put(classItem.getId(), classItem);
             }
         }
 
         if(discoveredElements.size() != 0){
             for(TypeMirror foundKlass : new HashSet<>(discoveredElements.keySet())) {
+                //Now that we have discovered all the Fields and methods we must go through step 2: Generate builders step 3: Generate Getter and injectors
                 TargettedSettingHolder defSettings = getOrDefaultSettings(discoveredElementSettings, foundKlass);
                 penKnifeStep2GenerateBuilder.generateBuilder(foundKlass, discoveredElements.get(foundKlass), defSettings);
                 penKnifeStep3Generate_Extractor_Injector.generateExtractor(foundKlass, discoveredElements.get(foundKlass), defSettings);
@@ -134,6 +126,10 @@ public class PenKnifeProcessor extends AbstractProcessor{
         return holder;
     }
 
+    /**
+     * Initializes the three steps to generating the files
+     * @param roundEnv
+     */
     private void extractHelperTypeMirrors(RoundEnvironment roundEnv) {
         for(Element element : roundEnv.getElementsAnnotatedWith(PKHandler.class)){
             containerMirror = Helpers.getContainerClass(element);

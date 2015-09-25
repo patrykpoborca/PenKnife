@@ -12,8 +12,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import io.patryk.penknifedemo.model.SerializedUser;
-import io.patryk.penknifedemo.result.PKBuildResultActivity;
+import io.patryk.penknifedemo.result.PKExtractResultActivity;
+import io.patryk.penknifedemo.result.PkBuildResultActivity;
 import io.patryk.penknifedemo.result.ResultActivity;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,10 +38,10 @@ public class MainActivity extends AppCompatActivity {
         buttonView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = PKBuildResultActivity.builder()
-                        .provideflag(booleanView.isChecked())
-                        .providemessage(welcomeMessage.getText().toString())
-                        .provideuser(new SerializedUser(nameView.getText().toString(), Integer.parseInt(ageView.getText().toString())))
+                Intent intent = PkBuildResultActivity.builder()
+                        .provideFlag(booleanView.isChecked())
+                        .provideMessage(welcomeMessage.getText().toString())
+                        .provideUser(new SerializedUser(nameView.getText().toString(), Integer.parseInt(ageView.getText().toString())))
                         .build();
                 intent.setClass(MainActivity.this, ResultActivity.class);
                 startActivity(intent);

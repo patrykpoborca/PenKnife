@@ -5,10 +5,10 @@ import java.util.List;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
-import io.patryk.Bindable;
+import io.patryk.PKBind;
 import io.patryk.helper.Helpers;
 
 /**
@@ -18,9 +18,9 @@ public class PenKnifeClassItem {
 
     private final DiscoveredElementWrapper discoveredRootElement;
     private final List<DiscoveredElementWrapper> discoveredMethodElements;
-    private final Bindable rootBindable;
+    private final BindableWrapper rootBindable;
 
-    public PenKnifeClassItem(Element rootElement, Bindable bindable){
+    public PenKnifeClassItem(Element rootElement, BindableWrapper bindable){
 
         rootBindable = bindable;
         discoveredRootElement = new DiscoveredElementWrapper(rootElement);
@@ -38,7 +38,7 @@ public class PenKnifeClassItem {
         }
     }
 
-    public Bindable getRootBindable() {
+    public BindableWrapper getRootBindable() {
         return rootBindable;
     }
 
@@ -78,6 +78,16 @@ public class PenKnifeClassItem {
 
         public String getGeneratedId() {
             return generatedId;
+        }
+    }
+
+    public static class BindableWrapper{
+        public final TypeMirror ClassScope;
+        public final int Priority;
+
+        public BindableWrapper(PKBind PKBind) {
+            Priority = PKBind.priorityOfTarget();
+            ClassScope = Helpers.getBindableTargetClass(PKBind);
         }
     }
 }

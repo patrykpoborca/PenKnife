@@ -8,14 +8,14 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
 
-import io.patryk.Bindable;
+import io.patryk.PKBind;
 import io.patryk.PenKnifeTargetSettings;
 import io.patryk.penknifedemo.R;
 import io.patryk.penknifedemo.base.BasePresenterActivity;
 import io.patryk.penknifedemo.model.SerializedUser;
 
 @PenKnifeTargetSettings(translateToClass =  Intent.class, createInjectionMethod = true)
-@Bindable(ResultActivity.class)
+@PKBind(ResultActivity.class)
 public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> implements IResultView{
 
     private View buttonView;
@@ -36,12 +36,12 @@ public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> i
         booleanView = (CheckBox) findViewById(R.id.check_box);
         welcomeMessage = (TextView) findViewById(R.id.welcome_message);
         PKExtractResultActivity.newInstance(getIntent().getExtras())
-                        .inject(getPresenter());
+                        .inject(this);
 
     }
 
 
-    @Bindable(ResultActivity.class)
+    @PKBind(ResultActivity.class)
     public void emptyMethod(){
 
     }

@@ -1,6 +1,6 @@
 package io.patryk.penknifedemo.result;
 
-import io.patryk.Bindable;
+import io.patryk.PKBind;
 import io.patryk.penknifedemo.base.CrudeBasePresenter;
 import io.patryk.penknifedemo.model.SerializedUser;
 
@@ -9,12 +9,15 @@ import io.patryk.penknifedemo.model.SerializedUser;
  */
 public class ResultViewPresenter extends CrudeBasePresenter<IResultView>{
 
-    @Bindable(ResultActivity.class)
+    @PKBind(ResultActivity.class)
+    public int myInte;
+
+    @PKBind(ResultActivity.class)
     public void injectUserHere(SerializedUser user){
         getView().showUser(user);
     }
 
-    @Bindable(value = ResultActivity.class, priorityOfTarget = 1)
+    @PKBind(value = ResultActivity.class, priorityOfTarget = 1)
     public void injectMessageAndBoolean(boolean flag, String message){
         getView().showWelcomeMessageAndFlag(message, flag);
     }

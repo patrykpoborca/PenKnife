@@ -11,7 +11,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 
-import io.patryk.Bindable;
+import io.patryk.PKBind;
 import io.patryk.PKHandler;
 import io.patryk.PenKnifeTargetSettings;
 import io.patryk.processing.PenKnifeClassItem;
@@ -33,10 +33,10 @@ public class Helpers {
         return null;
     }
 
-    public static TypeMirror getBindableTargetClass(Bindable bindable) {
+    public static TypeMirror getBindableTargetClass(PKBind PKBind) {
 
         try {
-            bindable.value();
+            PKBind.value();
         }
         catch(MirroredTypeException exception){
             return exception.getTypeMirror();
@@ -95,6 +95,10 @@ public class Helpers {
         builder.append(")");
 
         return builder.toString();
+    }
+
+    public static String typeCaseMethodName(String prefix, String suffix){
+        return prefix + Character.toUpperCase(suffix.charAt(0)) + suffix.substring(1);
     }
 
     public static TypeMirror getTranslatedClass(PenKnifeTargetSettings settings) {

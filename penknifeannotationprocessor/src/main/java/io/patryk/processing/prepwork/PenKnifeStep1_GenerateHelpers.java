@@ -37,6 +37,9 @@ public class PenKnifeStep1_GenerateHelpers {
         this.handlerTypeName = TypeName.get(handlerImplClass);
     }
 
+    /**
+     * Used to generate a type-safe wrapper around the PenKnife.getHandler() and cast it to your implementation
+     */
     public void generateHandlerStaticCast(){
         targettedClassInfo = Helpers.getPackage(handlerClass);
 

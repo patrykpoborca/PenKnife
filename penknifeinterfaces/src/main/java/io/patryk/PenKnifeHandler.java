@@ -38,10 +38,28 @@ public interface PenKnifeHandler<ContainerType> {
 
     ContainerType set(ContainerType container, String generatedId, String someString);
 
+    /**
+     *
+     * @param container
+     * @param generatedId Id used to extract object
+     * @param containerItemClass The class of the item in the container, can be utilized to decide how you wish to extract the object from it scontainer
+     * @return
+     */
     Object get(ContainerType container, String generatedId, Class<?> containerItemClass);
 
+    /**
+     * An optional callback based upon your @PenKnifeTargetSettings annotation
+     * @param container
+     * @param desiredClass
+     * @return
+     */
     Object map(ContainerType container, Class<?> desiredClass);
 
+    /**
+     * Final guaranteed callback unless the map has a class to map to
+     * @param containerType
+     * @return
+     */
     ContainerType finalize(ContainerType containerType);
 
 }

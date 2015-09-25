@@ -15,14 +15,10 @@ import java.util.List;
 import java.util.Map;
 
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
-import io.patryk.Bindable;
-import io.patryk.PenKnife;
 import io.patryk.helper.Helpers;
 import io.patryk.processing.PenKnifeClassItem;
 import io.patryk.processing.PenKnifeProcessor;
@@ -50,9 +46,10 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         this.step2 = penKnifeStep2GenerateBuilder;
     }
 
+    /**
+     * Will generate a newInstance method and a private constructor
+     */
     private void generateExtractionContainerMethods() {
-
-
         containerFetcher.addField(step2.getContainerTypeName(), NAME_CONTAINER, Modifier.PRIVATE);
 
         MethodSpec realConstructor = MethodSpec.constructorBuilder()
@@ -72,65 +69,51 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         containerFetcher.addMethod(newBuilderMethod);
     }
 
-    public void generateExtractor(TypeMirror foundKlass, final Map<String, PenKnifeClassItem> discoveredELements, PenKnifeProcessor.TargettedSettingHolder defSettings) {
+    /**
+     * Used to generate getters for each key of each item
+     * @param targettedClassScope the "scope" of the PKBuild
+     * @param discoveredELements the elements belonging to this scope
+     * @param defSettings default or discovered settings
+     */
+    public void generateExtractor(TypeMirror targettedClassScope, final Map<String, PenKnifeClassItem> discoveredELements, PenKnifeProcessor.TargettedSettingHolder defSettings) {
 
-        targettedClassInfo = Helpers.getPackage(foundKlass);
+        targettedClassInfo = Helpers.getPackage(targettedClassScope);
         classExtractorName = CLASS_EXTRACTOR_PREFIX + targettedClassInfo.className;
         ThisClassesName = ClassName.get(targettedClassInfo.classPackage, classExtractorName);
-        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, ThisClassesName.packageName() + " + " + ThisClassesName.simpleName());
-        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, targettedClassInfo.classPackage + " + " + targettedClassInfo.className);
         containerFetcher = TypeSpec.classBuilder(classExtractorName).addModifiers(Modifier.PUBLIC, Modifier.FINAL);
         generateExtractionContainerMethods();
         //Enclosing Target, InjectionMethod
         Map<TypeMirror, MethodSpec.Builder> injectionMethods = new HashMap<>(discoveredELements.size());
-
-
         List<MethodSpec> generatedMethods;
 
         List<PenKnifeClassItem> organizedList = new ArrayList<>(discoveredELements.values());
-        if(organizedList.size() > 1) {
+        if(organizedList.size() > 1 && defSettings.InjectDiscoveredElements) {
+            //sort injection by priority
             Collections.sort(organizedList, new Comparator<PenKnifeClassItem>() {
                 @Override
                 public int compare(PenKnifeClassItem o1, PenKnifeClassItem o2) {
-//                    Bindable left = o1.getDiscoveredRootElement().getElement().getAnnotation(Bindable.class);
-//                    Bindable right = o2.getDiscoveredRootElement().getElement().getAnnotation(Bindable.class);
-//
-                    if(o1.getRootBindable() == null){
-                        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "Right = > " + o2.getDiscoveredRootElement().getElement().asType() + " name: " +  o2.getDiscoveredRootElement().getElement().getSimpleName());
-                        if(o2.getDiscoveredMethodElements().size() > 0) {
-                            step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "Right = > " + o2.getDiscoveredMethodElements().get(0).getElement().getAnnotation(Bindable.class));
-                        }
-                    }
-                    else if(o2.getRootBindable() == null){
-                        step1.getMessager().printMessage(Diagnostic.Kind.WARNING, "left = > " + o1.getDiscoveredRootElement().getElement().asType() + " name: " + o2.getDiscoveredRootElement().getElement().getSimpleName());
-                    }
-//
                     if(o1.getRootBindable() == null){
                         return 1;
                     }
                     else if(o2.getRootBindable() == null){
                         return -1;
                     }
-//                    if(right == null){
-//                        return -1;
-//                    }
-//                    else if(left == null){
-//                        return 1;
-//                    }
 
-                    return o1.getRootBindable().priorityOfTarget() < o2.getRootBindable().priorityOfTarget() ? 1 : -1;
+                    return o1.getRootBindable().Priority < o2.getRootBindable().Priority ? 1 : -1;
                 }
             });
         }
 
         for(PenKnifeClassItem classItem : organizedList){
-            generatedMethods = generateFetchMethod(classItem);
 
+            //Generate getters based on the ClassInfotItem. If it's a method it will generate multiple get methods in one pass
+            generatedMethods = generateFetchMethod(classItem);
             for(int i =0; i < generatedMethods.size(); i++) {
                 containerFetcher.addMethod(generatedMethods.get(i));
             }
 
             if(defSettings.InjectDiscoveredElements){
+                //utilizing the above generated methods we will not begin to generate or add to he injection methods based on our getters
                 generateOrAddToInjectionMethod(classItem, injectionMethods, generatedMethods);
             }
         }
@@ -178,7 +161,7 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         if(classItem.isMethod()){
             for(int i =0; i < classItem.getDiscoveredMethodElements().size(); i++){
                 PenKnifeClassItem.DiscoveredElementWrapper wrapper = classItem.getDiscoveredMethodElements().get(i);
-                list.add(MethodSpec.methodBuilder(GETTER_METHOD_PREFIX + wrapper.getElement().getSimpleName())
+                list.add(MethodSpec.methodBuilder(Helpers.typeCaseMethodName(GETTER_METHOD_PREFIX, wrapper.getElement().getSimpleName().toString()))
                         .returns(TypeName.get(wrapper.getElement().asType()))
                         .addModifiers(Modifier.PUBLIC)
                         .addStatement("return ($T) $L().get($L, $S, $T.class)", wrapper.getElement().asType(), step1.getSmartCastMethod(), NAME_CONTAINER, wrapper.getGeneratedId(),
