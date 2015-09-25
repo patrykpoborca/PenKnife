@@ -69,7 +69,7 @@ When you annotate a field/method/class with **@PKBuild** you have the ability to
         
 This will result in this generated injectionmethod:
 
-    void inject(ResultViewPresenter injectableField) {
+    PKExtractResultActivity inject(ResultViewPresenter injectableField) {
         injectableField.injectMessageAndBoolean(getFlag(), getMessage());
         injectableField.injectUserHere(getUser());
       }
