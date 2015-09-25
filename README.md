@@ -53,7 +53,7 @@ As you can see, by default the default settings will cause your PKBuild to retur
 
 * Add this line of code to your application's OnCreate (Could be any PenKnifeHandler implementation):
 
-    PenKnife.initialize(new PenKnifeHandlerImpl());
+        PenKnife.initialize(new PenKnifeHandlerImpl());
     
 * Done. Now your project is ready to be annotated!
 
@@ -78,6 +78,7 @@ If you annotate a class with **@PKBind** you will generate provide methods/extra
 Finally, you also have the ability to annotate a scoped class to provide settings generated code for that scope. Case in point throughout this ReadMe I have been using the **ResultActivity.class** scope from the demo. This means all I have to do is annotate the ResultActivity in order to propagate settings to its generated **PKBuildResultActivity** and **PKExtractResultActivity**.
 
     @PenKnifeTargetSettings(translateToClass =  Intent.class, createInjectionMethod = true)
+
 
 By default the generate code will **not** use a translation class and **will** create injection methods. What this means for you, even if you annotate an activity you will get a bundle returned to you, in order to save code you simply annotate type of class you wish have the **PKBuild** return. However this mapping between the bundle and the desired return type is completely up to you. That is the reason for the map method in the PenKnifeHandler class. Here is a snipped from my implementation:
 
