@@ -1,7 +1,7 @@
 # Welcome to PenKnife
 Inspired by [Dagger 2][dagger-link] and [Pocket Knife][pocket-knife-link] this is a library that helps you speed up your development cycle by creating builders, getters and injectors based upon your project requirements at the cost of initial setup removing your need for intent/bundle factories. 
 
-How to get stared.
+How to get started.
 
 Tag a field
 
