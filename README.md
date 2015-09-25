@@ -57,6 +57,8 @@ As you can see, by default the default settings will cause your PKBuild to retur
     
 * Done. Now your project is ready to be annotated!
 
+[A gist of my DemoApplication.java](https://gist.github.com/patrykpoborca/fd1ec2b75ae5243b5ee3)
+
 ## Optional settings
 When you annotate a field/method/class with **@PKBuild** you have the ability to assign a priority to that annotation. 0 is the default value, this priority is used to determine the order in which the annotated elements are injected. This is in case you have injectable elements which rely on one another to not error out.
 
