@@ -68,6 +68,9 @@ This will result in this generated injectionmethod:
         injectableField.injectUserHere(getUser());
       }
       
+
+If you annotate a class with **@PKBind** you will generate provide methods/extract and (optionally) injection methods for any non privae/protected fields. Meaning in cases with several injectable fields but a few public non-injectable fields you may want to annoate the class itself to save clutter. That's where **@PKIgnore** comes in. If you annotate a field with this, it will be ignored in in the class level search.
+
 Finally, you also have the ability to annotate a scoped class to provide settings generated code for that scope. Case in point throughout this ReadMe I have been using the **ResultActivity.class** scope from the demo. This means all I have to do is annotate the ResultActivity in order to propagate settings to its generated **PKBuildResultActivity** and **PKExtractResultActivity**.
 
     @PenKnifeTargetSettings(translateToClass =  Intent.class, createInjectionMethod = true)
@@ -88,6 +91,7 @@ The idea here is to save you these lines of code if you annotate Activities:
 
     Intent intent = new Intent();
     intent.putExtras(bundle);
+    
 
 Let me know your thoughts/opinions about this library at my gmail: **poborcapatryk**
 or at my [Twitter](https://twitter.com/patrykpoborca) and on if you're doing all that give me a follow on [Medium](https://medium.com/@patrykpoborca/)
