@@ -43,6 +43,15 @@ Usage  of PKExtract (Default Settings):
 
 As you can see, by default the default settings will cause your PKBuild to return a Bundle (Or which ever type of java container you wish to utilize). Additionally even though PKExtract[**] comes with getter methods for each bundled item, it also generates an injection method for each class which featured a __@PKBind__ annotation on or in it.
 
+
+Additionally, every object that you can add to your bundle will also have a "contains" check, this is required due to the casting of primitives, meaning if you have a primitive that was never added to the parameters required for a injection method, the injection method will enver be called! This is required in order to not interfere with the values of passed in parameters. (Primitives aren't nullable)
+
+The syntax is as such:
+
+    if(PKExtractResultActivity.newInstance(bundle).containsUser()){
+                    //do something
+                }
+
 ## Setup instructions
 * Setup gradle dependencies (TODO)
 * Either utilize the [PenKnifeHandlerImpl][penknife-handler-impl] I created or make your own by implementing this interface [PenKnifeHandler][penknife-handler] This will be call back that the generated code utilizes at run time to deal with bundling/unbundling.
