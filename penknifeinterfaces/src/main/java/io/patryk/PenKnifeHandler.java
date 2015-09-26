@@ -62,4 +62,6 @@ public interface PenKnifeHandler<ContainerType> {
      */
     ContainerType finalize(ContainerType containerType);
 
+    boolean contains(ContainerType containerType, String generatedKey);
+
 }

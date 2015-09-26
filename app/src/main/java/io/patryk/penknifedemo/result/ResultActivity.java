@@ -36,6 +36,7 @@ public class ResultActivity extends BasePresenterActivity<ResultViewPresenter> i
         booleanView = (CheckBox) findViewById(R.id.check_box);
         welcomeMessage = (TextView) findViewById(R.id.welcome_message);
         PKExtractResultActivity.newInstance(getIntent().getExtras())
+                        .inject(getPresenter())
                         .inject(this);
 
     }

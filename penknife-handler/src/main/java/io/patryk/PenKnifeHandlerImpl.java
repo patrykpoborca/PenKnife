@@ -88,4 +88,9 @@ public class PenKnifeHandlerImpl implements PenKnifeHandler<Bundle> {
     public Bundle finalize(Bundle bundle) {
         return bundle;
     }
+
+    @Override
+    public boolean contains(Bundle bundle, String generatedKey) {
+        return bundle.containsKey(generatedKey);
+    }
 }

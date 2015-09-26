@@ -34,6 +34,7 @@ public class PenKnifeStep3Generate_Extractor_Injector {
     private static final String GETTER_METHOD_PREFIX = "get";
     private static final String INJECTION_METHOD = "inject";
     private static final String INJECTABLE_PARAMETER = "injectableField";
+    private static final String CONAINS_PREFIX = "contains";
     private final PenKnifeStep2_GenerateBuilder step2;
     private final PenKnifeStep1_GenerateHelpers step1;
     private String classExtractorName;
@@ -104,12 +105,18 @@ public class PenKnifeStep3Generate_Extractor_Injector {
             });
         }
 
+
         for(PenKnifeClassItem classItem : organizedList){
 
             //Generate getters based on the ClassInfotItem. If it's a method it will generate multiple get methods in one pass
             generatedMethods = generateFetchMethod(classItem);
+            List<MethodSpec> generatedContainsMethods = generateContainsmethods(classItem); //don't need these methods kept
             for(int i =0; i < generatedMethods.size(); i++) {
                 containerFetcher.addMethod(generatedMethods.get(i));
+            }
+
+            for(int i =0; i < generatedContainsMethods.size(); i++){
+                containerFetcher.addMethod(generatedContainsMethods.get(i));
             }
 
             if(defSettings.InjectDiscoveredElements){
@@ -120,9 +127,11 @@ public class PenKnifeStep3Generate_Extractor_Injector {
 
         if(defSettings.InjectDiscoveredElements){
             for(MethodSpec.Builder method : injectionMethods.values()){
+                method.addStatement("return this");
                 containerFetcher.addMethod(method.build());
             }
         }
+
 
         try{
             JavaFile.builder(step2.getTargettedClassInfo().classPackage, containerFetcher.build()).build().writeTo(step1.getFiler());
@@ -133,6 +142,34 @@ public class PenKnifeStep3Generate_Extractor_Injector {
 
     }
 
+    private List<MethodSpec> generateContainsmethods(PenKnifeClassItem classItem) {
+        List<MethodSpec> list = new ArrayList<>(1);
+
+        if(classItem.isMethod()){
+            for(int i =0; i < classItem.getDiscoveredMethodElements().size(); i++){
+                PenKnifeClassItem.DiscoveredElementWrapper wrapper = classItem.getDiscoveredMethodElements().get(i);
+                list.add(MethodSpec.methodBuilder(Helpers.typeCaseMethodName(CONAINS_PREFIX, wrapper.getElement().getSimpleName().toString()))
+                        .returns(boolean.class)
+                        .addModifiers(Modifier.PUBLIC)
+                        .addStatement("return $L().contains($N, $S)", step1.getSmartCastMethod(),
+                                NAME_CONTAINER,
+                                wrapper.getGeneratedId())
+                        .build());
+            }
+        }
+        else {
+            PenKnifeClassItem.DiscoveredElementWrapper wrapper = classItem.getDiscoveredRootElement();
+            list.add(MethodSpec.methodBuilder(Helpers.typeCaseMethodName(CONAINS_PREFIX, wrapper.getElement().getSimpleName().toString()))
+                    .returns(boolean.class)
+                    .addModifiers(Modifier.PUBLIC)
+                    .addStatement("return $L().contains($N, $S)", step1.getSmartCastMethod(),
+                            NAME_CONTAINER,
+                            wrapper.getGeneratedId())
+                    .build());
+        }
+        return list;
+    }
+
     private void generateOrAddToInjectionMethod(PenKnifeClassItem classItem, Map<TypeMirror, MethodSpec.Builder> injectionMethods, List<MethodSpec> generatedMethods) {
         Element discoveredElement = classItem.getDiscoveredRootElement().getElement();
         Element classLevelElement = discoveredElement.getEnclosingElement();
@@ -140,7 +177,7 @@ public class PenKnifeStep3Generate_Extractor_Injector {
 
         if(!injectionMethods.containsKey(classLevelElement.asType())){
             methodBuilder = MethodSpec.methodBuilder(INJECTION_METHOD)
-                    .returns(void.class)
+                    .returns(ThisClassesName)
                     .addParameter(TypeName.get(classLevelElement.asType()), INJECTABLE_PARAMETER);
 
             injectionMethods.put(classLevelElement.asType(), methodBuilder);
@@ -148,11 +185,54 @@ public class PenKnifeStep3Generate_Extractor_Injector {
         methodBuilder = methodBuilder == null ? injectionMethods.get(classLevelElement.asType()) : methodBuilder;
 
         if(classItem.isMethod()){
-            methodBuilder.addStatement("$N." + Helpers.generateMethodCall(classItem, generatedMethods), INJECTABLE_PARAMETER);
+
+            String containsCondition = canInjectMethodCheck(classItem);
+            if(containsCondition.length() == 0){
+                methodBuilder.addStatement("$N." + Helpers.generateMethodCall(classItem, generatedMethods), INJECTABLE_PARAMETER);
+            }
+            else {
+                methodBuilder
+                        .beginControlFlow(containsCondition)
+                        .addStatement("$N." + Helpers.generateMethodCall(classItem, generatedMethods), INJECTABLE_PARAMETER)
+                        .endControlFlow();
+            }
         }
         else{
-            methodBuilder.addStatement("$N.$L = $N()", INJECTABLE_PARAMETER, discoveredElement.getSimpleName(), generatedMethods.get(0));
+            if(discoveredElement.asType().getKind().isPrimitive()) {
+                methodBuilder
+                        .beginControlFlow("if($L())", Helpers.typeCaseMethodName(CONAINS_PREFIX, discoveredElement.getSimpleName().toString()))
+                        .addStatement("$N.$L = $N()", INJECTABLE_PARAMETER, discoveredElement.getSimpleName(), generatedMethods.get(0))
+                        .endControlFlow();
+            }
+            else{
+                methodBuilder.addStatement("$N.$L = $N()", INJECTABLE_PARAMETER, discoveredElement.getSimpleName(), generatedMethods.get(0));
+            }
         }
+    }
+
+    private String canInjectMethodCheck(PenKnifeClassItem classItem) {
+        StringBuilder builder = new StringBuilder("if(");
+        boolean foundPrimitve = false;
+
+        for (int i = 0; i < classItem.getDiscoveredMethodElements().size(); i++) {
+            PenKnifeClassItem.DiscoveredElementWrapper wrapper = classItem.getDiscoveredMethodElements().get(i);
+            if (wrapper.getElement().asType().getKind().isPrimitive()) {
+
+                if (foundPrimitve) {
+                    builder.append(" && ")
+                            .append(Helpers.typeCaseMethodName(CONAINS_PREFIX, wrapper.getElement().getSimpleName().toString()))
+                            .append("()");
+                } else {
+                    builder.append(Helpers.typeCaseMethodName(CONAINS_PREFIX, wrapper.getElement().getSimpleName().toString()))
+                        .append("()");
+                }
+                foundPrimitve = true;
+            }
+
+        }
+
+        builder.append(")");
+        return !foundPrimitve ? "" : builder.toString();
     }
 
     private List<MethodSpec> generateFetchMethod(PenKnifeClassItem classItem) {
